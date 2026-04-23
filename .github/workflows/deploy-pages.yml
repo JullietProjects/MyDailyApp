@@ -1,3 +1,6 @@
+# Publishes ./dist from the build job. In the repo on GitHub:
+# Settings → Pages → Build and deployment → Source: GitHub Actions
+# (If Source is “Deploy from branch”, the site will serve raw index.html and break.)
 name: Deploy to GitHub Pages
 
 on:
