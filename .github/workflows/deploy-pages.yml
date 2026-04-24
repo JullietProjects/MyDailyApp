@@ -28,6 +28,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Verify Vite output (not source index.html)
+        run: |
+          test -f dist/index.html
+          grep -q 'assets/index' dist/index.html || (echo 'dist/index.html must reference hashed JS/CSS from npm run build' && exit 1)
+          grep -q '/MyDailyApp/' dist/index.html || (echo 'dist must use base path /MyDailyApp/' && exit 1)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
