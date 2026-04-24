@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { DayEvent, DayRecord, EventKind, TimelineTabId } from './types'
 import { emptyDay, isDevicePersistenceAvailable, loadDay, saveDay } from './storage'
 import { copyText, exportMarkdown, exportSingleEventMarkdown } from './exportDay'
@@ -66,7 +66,12 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [clearDayModalOpen, setClearDayModalOpen] = useState(false)
   const clearDayFocusRef = useRef<HTMLButtonElement>(null)
+  const allTabEditFormRef = useRef<HTMLLIElement>(null)
   const persistenceOk = useMemo(() => isDevicePersistenceAvailable(), [])
+
+  const allTabInlineEdit =
+    activeTab === 'all' && addOpen && editingEvent != null
+  const addFormAboveList = addOpen && !allTabInlineEdit
 
   useEffect(() => {
     saveDay(record)
@@ -86,6 +91,11 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
     }
   }, [clearDayModalOpen])
+
+  useLayoutEffect(() => {
+    if (!allTabInlineEdit) return
+    allTabEditFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [allTabInlineEdit, editingEvent?.id])
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -192,6 +202,42 @@ export default function App() {
     showToast('Day cleared on this device')
   }
 
+  function addEventForm() {
+    return (
+      <InlineAddEvent
+        key={editingEvent?.id ?? `new-${addFormNonce}`}
+        dayYmd={date}
+        lockedKind={
+          editingEvent ? editingEvent.kind : activeTab === 'all' ? undefined : activeTab
+        }
+        initialEvent={editingEvent}
+        onSave={(payload, replaceId) => {
+          if (replaceId) {
+            updateEvent(replaceId, payload)
+            showToast('Entry updated')
+          } else {
+            addEvent(payload)
+            showToast('Saved to timeline')
+          }
+          setEditingEvent(null)
+        }}
+        onClose={() => {
+          setAddOpen(false)
+          setEditingEvent(null)
+        }}
+        onDelete={
+          editingEvent
+            ? () => {
+                removeEvent(editingEvent.id)
+                setEditingEvent(null)
+                setAddOpen(false)
+              }
+            : undefined
+        }
+      />
+    )
+  }
+
   return (
     <div className="app">
       {!persistenceOk ? (
@@ -281,90 +327,69 @@ export default function App() {
           className="tab-panel"
         />
 
-        {addOpen ? (
-          <InlineAddEvent
-            key={editingEvent?.id ?? `new-${addFormNonce}`}
-            dayYmd={date}
-            lockedKind={
-              editingEvent ? editingEvent.kind : activeTab === 'all' ? undefined : activeTab
-            }
-            initialEvent={editingEvent}
-            onSave={(payload, replaceId) => {
-              if (replaceId) {
-                updateEvent(replaceId, payload)
-                showToast('Entry updated')
-              } else {
-                addEvent(payload)
-                showToast('Saved to timeline')
-              }
-              setEditingEvent(null)
-            }}
-            onClose={() => {
-              setAddOpen(false)
-              setEditingEvent(null)
-            }}
-            onDelete={
-              editingEvent
-                ? () => {
-                    removeEvent(editingEvent.id)
-                    setEditingEvent(null)
-                    setAddOpen(false)
-                  }
-                : undefined
-            }
-          />
-        ) : null}
+        {addFormAboveList ? addEventForm() : null}
 
         <ul className="timeline" aria-live="polite">
-          {displayedEvents.map((e) => (
-            <li key={e.id} className={`tl-row kind-${e.kind}`}>
-              <div className="tl-meta">
-                <span className="tl-pill tl-pill-period">
-                  {e.kind === 'sleep' && e.sleepOmitTime
-                    ? periodShortLabel('morning')
-                    : periodShortLabel(getPeriod(e.at))}
-                </span>
-                {activeTab === 'all' ? (
-                  <span className="tl-pill tl-pill-kind">{kindLabel(e.kind)}</span>
-                ) : null}
-                <span className="tl-time">
-                  {e.kind === 'sleep' && e.sleepOmitTime
-                    ? ''
-                    : (e.kind === 'note' || e.kind === 'movement') &&
-                        e.durationMinutes != null &&
-                        e.durationMinutes > 0
-                      ? formatTimeRangeLabel(e.at, e.durationMinutes, e.fuzzy)
-                      : `${e.fuzzy ? '~' : ''}${new Date(e.at).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true,
-                        })}`}
-                </span>
-              </div>
-              <p className="tl-text">{e.text}</p>
-              <div className="tl-actions">
-                <button
-                  type="button"
-                  className="btn ghost small icon-only tl-action-btn"
-                  onClick={() => {
-                    setEditingEvent(e)
-                    setAddOpen(true)
-                  }}
-                  aria-label="Edit entry"
-                >
-                  <EditIcon />
-                </button>
-                <button
-                  type="button"
-                  className="btn ghost small icon-only tl-action-btn"
-                  onClick={() => handleCopyOneEntry(e)}
-                  aria-label="Copy entry as Markdown"
-                >
-                  <CopyIcon />
-                </button>
-              </div>
-            </li>
-          ))}
+          {displayedEvents.flatMap((e) => {
+            const row = (
+              <li key={e.id} className={`tl-row kind-${e.kind}`}>
+                <div className="tl-meta">
+                  <span className="tl-pill tl-pill-period">
+                    {e.kind === 'sleep' && e.sleepOmitTime
+                      ? periodShortLabel('morning')
+                      : periodShortLabel(getPeriod(e.at))}
+                  </span>
+                  {activeTab === 'all' ? (
+                    <span className="tl-pill tl-pill-kind">{kindLabel(e.kind)}</span>
+                  ) : null}
+                  <span className="tl-time">
+                    {e.kind === 'sleep' && e.sleepOmitTime
+                      ? ''
+                      : (e.kind === 'note' || e.kind === 'movement') &&
+                          e.durationMinutes != null &&
+                          e.durationMinutes > 0
+                        ? formatTimeRangeLabel(e.at, e.durationMinutes, e.fuzzy)
+                        : `${e.fuzzy ? '~' : ''}${new Date(e.at).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          })}`}
+                  </span>
+                </div>
+                <p className="tl-text">{e.text}</p>
+                <div className="tl-actions">
+                  <button
+                    type="button"
+                    className="btn ghost small icon-only tl-action-btn"
+                    onClick={() => {
+                      setEditingEvent(e)
+                      setAddOpen(true)
+                    }}
+                    aria-label="Edit entry"
+                  >
+                    <EditIcon />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost small icon-only tl-action-btn"
+                    onClick={() => handleCopyOneEntry(e)}
+                    aria-label="Copy entry as Markdown"
+                  >
+                    <CopyIcon />
+                  </button>
+                </div>
+              </li>
+            )
+            if (allTabInlineEdit && editingEvent && e.id === editingEvent.id) {
+              return [
+                <li key={`${e.id}-edit-form`} className="tl-form-slot" ref={allTabEditFormRef}>
+                  {addEventForm()}
+                </li>,
+                row,
+              ]
+            }
+            return [row]
+          })}
         </ul>
       </section>
 

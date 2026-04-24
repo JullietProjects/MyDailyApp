@@ -675,6 +675,13 @@
   padding: 0;
 }
 
+/* Edit form is inserted as a list row in "All" so it sits above the entry being edited */
+.timeline .tl-form-slot {
+  list-style: none;
+  margin: 0 0 0.35rem;
+  padding: 0;
+}
+
 .tl-row {
   --tl-accent: color-mix(in srgb, var(--text-h) 28%, var(--border));
   position: relative;
