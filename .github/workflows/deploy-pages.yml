@@ -8,6 +8,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Use Node 24 for JS-based actions (see GitHub Actions Node 20 deprecation notice).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
   pages: write
@@ -26,10 +30,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v6
         id: pages
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -40,7 +44,7 @@ jobs:
           test -f dist/index.html
           grep -q 'assets/index' dist/index.html || (echo 'dist/index.html must reference hashed JS/CSS from npm run build' && exit 1)
           grep -q '/MyDailyApp/' dist/index.html || (echo 'dist must use base path /MyDailyApp/' && exit 1)
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -56,4 +60,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
