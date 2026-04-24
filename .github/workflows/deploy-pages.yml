@@ -12,10 +12,14 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # deploy-pages reads the uploaded `github-pages` artifact in this workflow run
+  actions: read
 
+# One live deploy at a time. New pushes cancel an in-flight run so deploy-pages does not hit
+# "in progress deployment … cancel first or wait" when a previous run is still deploying.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -33,16 +37,20 @@ jobs:
           test -f dist/index.html
           grep -q 'assets/index' dist/index.html || (echo 'dist/index.html must reference hashed JS/CSS from npm run build' && exit 1)
           grep -q '/MyDailyApp/' dist/index.html || (echo 'dist must use base path /MyDailyApp/' && exit 1)
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      actions: read
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
