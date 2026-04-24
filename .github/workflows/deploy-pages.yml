@@ -15,17 +15,20 @@ permissions:
   # deploy-pages reads the uploaded `github-pages` artifact in this workflow run
   actions: read
 
-# One live deploy at a time. New pushes cancel an in-flight run so deploy-pages does not hit
-# "in progress deployment … cancel first or wait" when a previous run is still deploying.
+# Do not cancel in-progress deploys: cancelling can leave a half-done Pages deployment, after which
+# the site can fall back to wrong content. If deploy races, re-run the workflow after the previous
+# one finishes, or use workflow_dispatch.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        id: pages
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -37,7 +40,7 @@ jobs:
           test -f dist/index.html
           grep -q 'assets/index' dist/index.html || (echo 'dist/index.html must reference hashed JS/CSS from npm run build' && exit 1)
           grep -q '/MyDailyApp/' dist/index.html || (echo 'dist must use base path /MyDailyApp/' && exit 1)
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
@@ -53,4 +56,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
