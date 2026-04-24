@@ -60,7 +60,9 @@ function formatEventClock(e: DayEvent): string {
     (e.kind === 'note' || e.kind === 'movement') &&
     e.durationMinutes != null &&
     e.durationMinutes > 0
-  return hasSpan ? formatTimeRangeLabel(e.at, e.durationMinutes!, e.fuzzy) : formatClock(e.at, e.fuzzy)
+  return hasSpan
+    ? formatTimeRangeLabel(e.at, e.durationMinutes!, e.fuzzy, e.durationAnchor ?? 'start')
+    : formatClock(e.at, e.fuzzy)
 }
 
 /** Markdown bullet for one event (sleep has no clock; prefixed with `Sleep:`). */

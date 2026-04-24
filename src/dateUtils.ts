@@ -36,19 +36,33 @@ export function defaultAtForDay(dayYmd: string): string {
   return new Date(y, m - 1, day, n.getHours(), n.getMinutes(), 0, 0).toISOString()
 }
 
-/** Display `5:30 PM–6:30 PM` for a timed log span (same day, local). */
+/**
+ * Timed log span in local time. `fuzzy` applies to the anchor instant (start or end of range).
+ * - `timeAnchor: 'start'`: `anchorIso` is range start, range runs forward.
+ * - `timeAnchor: 'end'`: `anchorIso` is range end, range runs backward.
+ */
 export function formatTimeRangeLabel(
-  startIso: string,
+  anchorIso: string,
   durationMinutes: number,
-  startFuzzy: boolean,
+  anchorFuzzy: boolean,
+  timeAnchor: 'start' | 'end' = 'start',
 ): string {
-  const start = new Date(startIso)
-  const end = new Date(startIso)
-  end.setMinutes(end.getMinutes() + durationMinutes)
   const opts = { hour: 'numeric' as const, minute: '2-digit' as const, hour12: true }
+  if (timeAnchor === 'end') {
+    const end = new Date(anchorIso)
+    const start = new Date(anchorIso)
+    start.setMinutes(start.getMinutes() - durationMinutes)
+    const a = start.toLocaleTimeString('en-US', opts)
+    const b = end.toLocaleTimeString('en-US', opts)
+    const right = anchorFuzzy ? `~${b}` : b
+    return `${a}–${right}`
+  }
+  const start = new Date(anchorIso)
+  const end = new Date(anchorIso)
+  end.setMinutes(end.getMinutes() + durationMinutes)
   const a = start.toLocaleTimeString('en-US', opts)
   const b = end.toLocaleTimeString('en-US', opts)
-  const left = startFuzzy ? `~${a}` : a
+  const left = anchorFuzzy ? `~${a}` : a
   return `${left}–${b}`
 }
 

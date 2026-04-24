@@ -2,8 +2,9 @@ import type { DayEvent, DayRecord, MedPreset } from './types'
 import { composeSleepLine, formatEntryText, parseSleepFromText } from './textFix'
 
 function stripDuration(ev: DayEvent): DayEvent {
-  const copy = { ...ev } as DayEvent & { durationMinutes?: number }
+  const copy = { ...ev } as DayEvent & { durationMinutes?: number; durationAnchor?: 'start' | 'end' }
   delete copy.durationMinutes
+  delete copy.durationAnchor
   return copy as DayEvent
 }
 
@@ -88,7 +89,13 @@ function normalizeEvent(e: Partial<DayEvent> & { durationMinutes?: unknown }): D
   if (!Number.isFinite(n) || n <= 0) {
     return stripDuration(base)
   }
-  return { ...base, durationMinutes: Math.min(10080, Math.floor(n)) }
+  const d = Math.min(10080, Math.floor(n))
+  if (e.durationAnchor === 'end') {
+    return { ...base, durationMinutes: d, durationAnchor: 'end' as const }
+  }
+  const out = { ...base, durationMinutes: d } as DayEvent & { durationAnchor?: 'start' | 'end' }
+  delete out.durationAnchor
+  return out as DayEvent
 }
 
 function normalizeLoaded(parsed: Partial<DayRecord>, date: string): DayRecord {

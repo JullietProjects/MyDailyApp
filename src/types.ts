@@ -17,6 +17,8 @@ export interface DayEvent {
   text: string
   /** Log & movement: minutes after `at`; timeline + export show `5:30 PM–6:30 PM` span. */
   durationMinutes?: number
+  /** If set with duration: `at` is the end of the span (backward range); if omitted, `at` is the start. */
+  durationAnchor?: 'start' | 'end'
   /** Sleep: duration or amount (e.g. `7.5h`, `~6h`). */
   sleepQuantity?: string
   /** Sleep: how it felt (e.g. `solid`, `fragmented`). */

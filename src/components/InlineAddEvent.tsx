@@ -83,6 +83,11 @@ function buildInitialState(p: Props) {
         initialEvent.durationMinutes > 0
           ? String(initialEvent.durationMinutes)
           : '',
+      durationAnchor:
+        (initialEvent.kind === 'note' || initialEvent.kind === 'movement') &&
+        initialEvent.durationAnchor === 'end'
+          ? 'end' as const
+          : 'start' as const,
     }
   }
   return {
@@ -93,6 +98,7 @@ function buildInitialState(p: Props) {
     sleepQuantity: '',
     sleepQuality: '',
     durationMinutes: '',
+    durationAnchor: 'start' as const,
   }
 }
 
@@ -106,6 +112,7 @@ export function InlineAddEvent(p: Props) {
   const [sleepQuality, setSleepQuality] = useState(init.sleepQuality)
   /** Minutes; empty string = no range (single timestamp in export). */
   const [durationMinutes, setDurationMinutes] = useState(init.durationMinutes)
+  const [durationAnchor, setDurationAnchor] = useState<'start' | 'end'>(init.durationAnchor)
   const [foodRows, setFoodRows] = useState<FoodRowDraft[]>(() => initFoodRowDrafts(p))
 
   const { lockedKind, initialEvent, onSave, onDelete, onClose } = p
@@ -177,13 +184,20 @@ export function InlineAddEvent(p: Props) {
       kind: effectiveKind,
       text: fixed,
       symbol: '',
-      ...(parsedDuration != null ? { durationMinutes: parsedDuration } : {}),
+      ...(parsedDuration != null
+        ? {
+            durationMinutes: parsedDuration,
+            ...(durationAnchor === 'end' ? { durationAnchor: 'end' as const } : {}),
+          }
+        : {}),
     }
     if (
       (effectiveKind === 'note' || effectiveKind === 'movement') &&
       parsedDuration == null
     ) {
-      delete (base as { durationMinutes?: number }).durationMinutes
+      const b = base as { durationMinutes?: number; durationAnchor?: 'end' }
+      delete b.durationMinutes
+      delete b.durationAnchor
     }
     onSave(base, initialEvent?.id, { adjusted })
     onClose()
@@ -296,6 +310,37 @@ export function InlineAddEvent(p: Props) {
               ))}
             </div>
           </div>
+          {durationMinutes.trim() !== '' ? (
+            <fieldset className="duration-anchor-fieldset">
+              <legend className="duration-anchor-legend">This time and duration</legend>
+              <div
+                className="duration-anchor-options"
+                role="group"
+                aria-label="Start or end of range"
+              >
+                <label className="duration-anchor-option">
+                  <input
+                    type="radio"
+                    name="durationAnchor"
+                    value="start"
+                    checked={durationAnchor === 'start'}
+                    onChange={() => setDurationAnchor('start')}
+                  />
+                  <span>Start — time runs forward</span>
+                </label>
+                <label className="duration-anchor-option">
+                  <input
+                    type="radio"
+                    name="durationAnchor"
+                    value="end"
+                    checked={durationAnchor === 'end'}
+                    onChange={() => setDurationAnchor('end')}
+                  />
+                  <span>End — time runs backward</span>
+                </label>
+              </div>
+            </fieldset>
+          ) : null}
         </div>
       ) : null}
       {effectiveKind === 'food' ? (

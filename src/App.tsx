@@ -66,12 +66,12 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [clearDayModalOpen, setClearDayModalOpen] = useState(false)
   const clearDayFocusRef = useRef<HTMLButtonElement>(null)
-  const allTabEditFormRef = useRef<HTMLLIElement>(null)
+  const inlineEditFormRef = useRef<HTMLLIElement>(null)
   const persistenceOk = useMemo(() => isDevicePersistenceAvailable(), [])
 
-  const allTabInlineEdit =
-    activeTab === 'all' && addOpen && editingEvent != null
-  const addFormAboveList = addOpen && !allTabInlineEdit
+  /** When editing, the form replaces the row in the list; new entry (+) stays under the tabs, above the list. */
+  const inlineEditInList = addOpen && editingEvent != null
+  const addFormAboveList = addOpen && !editingEvent
 
   useEffect(() => {
     saveDay(record)
@@ -93,9 +93,9 @@ export default function App() {
   }, [clearDayModalOpen])
 
   useLayoutEffect(() => {
-    if (!allTabInlineEdit) return
-    allTabEditFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [allTabInlineEdit, editingEvent?.id])
+    if (!inlineEditInList) return
+    inlineEditFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [inlineEditInList, editingEvent?.id])
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -348,7 +348,12 @@ export default function App() {
                       : (e.kind === 'note' || e.kind === 'movement') &&
                           e.durationMinutes != null &&
                           e.durationMinutes > 0
-                        ? formatTimeRangeLabel(e.at, e.durationMinutes, e.fuzzy)
+                        ? formatTimeRangeLabel(
+                            e.at,
+                            e.durationMinutes,
+                            e.fuzzy,
+                            e.durationAnchor ?? 'start',
+                          )
                         : `${e.fuzzy ? '~' : ''}${new Date(e.at).toLocaleTimeString('en-US', {
                             hour: 'numeric',
                             minute: '2-digit',
@@ -380,12 +385,11 @@ export default function App() {
                 </div>
               </li>
             )
-            if (allTabInlineEdit && editingEvent && e.id === editingEvent.id) {
+            if (inlineEditInList && editingEvent && e.id === editingEvent.id) {
               return [
-                <li key={`${e.id}-edit-form`} className="tl-form-slot" ref={allTabEditFormRef}>
+                <li key={`${e.id}-edit-form`} className="tl-form-slot" ref={inlineEditFormRef}>
                   {addEventForm()}
                 </li>,
-                row,
               ]
             }
             return [row]
