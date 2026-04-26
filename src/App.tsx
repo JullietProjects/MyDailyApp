@@ -39,6 +39,12 @@ function formatDayHeading(isoDate: string): string {
   })
 }
 
+function formatDayShort(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const dt = new Date(y, (m ?? 1) - 1, d ?? 1)
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 function kindLabel(k: EventKind): string {
   switch (k) {
     case 'med':
@@ -65,7 +71,9 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState<DayEvent | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [clearDayModalOpen, setClearDayModalOpen] = useState(false)
+  const [pendingDateSwitch, setPendingDateSwitch] = useState<string | null>(null)
   const clearDayFocusRef = useRef<HTMLButtonElement>(null)
+  const dateSwitchFocusRef = useRef<HTMLButtonElement>(null)
   const inlineEditFormRef = useRef<HTMLLIElement>(null)
   const persistenceOk = useMemo(() => isDevicePersistenceAvailable(), [])
 
@@ -78,19 +86,23 @@ export default function App() {
   }, [record])
 
   useEffect(() => {
-    if (!clearDayModalOpen) return
+    const anyModalOpen = clearDayModalOpen || pendingDateSwitch != null
+    if (!anyModalOpen) return
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    clearDayFocusRef.current?.focus()
+    if (clearDayModalOpen) clearDayFocusRef.current?.focus()
+    else if (pendingDateSwitch != null) dateSwitchFocusRef.current?.focus()
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setClearDayModalOpen(false)
+      if (e.key !== 'Escape') return
+      if (clearDayModalOpen) setClearDayModalOpen(false)
+      else setPendingDateSwitch(null)
     }
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKey)
     }
-  }, [clearDayModalOpen])
+  }, [clearDayModalOpen, pendingDateSwitch])
 
   useLayoutEffect(() => {
     if (!inlineEditInList) return
@@ -154,23 +166,7 @@ export default function App() {
     const targetEmpty = target.events.length === 0
 
     if (hasWork && targetEmpty) {
-      const n = record.events.length
-      const move = window.confirm(
-        `You have ${n} entr${n === 1 ? 'y' : 'ies'} on ${record.date}. ${next} has nothing saved yet.\n\n` +
-          `OK — move these entries to ${next} (and clear ${record.date} on this device).\n` +
-          `Cancel — keep entries on ${record.date} and open an empty ${next}.`,
-      )
-      if (move) {
-        const shifted = shiftEventsToDay(record.events, record.date, next)
-        const nextRecord: DayRecord = { date: next, events: sortEvents(shifted) }
-        saveDay(emptyDay(record.date))
-        saveDay(nextRecord)
-        setDate(next)
-        setRecord(nextRecord)
-        return
-      }
-      setDate(next)
-      setRecord(emptyDay(next))
+      setPendingDateSwitch(next)
       return
     }
 
@@ -200,6 +196,26 @@ export default function App() {
     saveDay(next)
     setClearDayModalOpen(false)
     showToast('Day cleared on this device')
+  }
+
+  function performDateSwitchMove() {
+    if (pendingDateSwitch == null) return
+    const next = pendingDateSwitch
+    const shifted = shiftEventsToDay(record.events, record.date, next)
+    const nextRecord: DayRecord = { date: next, events: sortEvents(shifted) }
+    saveDay(emptyDay(record.date))
+    saveDay(nextRecord)
+    setDate(next)
+    setRecord(nextRecord)
+    setPendingDateSwitch(null)
+  }
+
+  function performDateSwitchOpenEmpty() {
+    if (pendingDateSwitch == null) return
+    const next = pendingDateSwitch
+    setDate(next)
+    setRecord(emptyDay(next))
+    setPendingDateSwitch(null)
   }
 
   function addEventForm() {
@@ -481,6 +497,63 @@ export default function App() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {pendingDateSwitch != null ? (
+        <div
+          className="clear-day-backdrop"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPendingDateSwitch(null)
+          }}
+        >
+          <div
+            className="clear-day-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="date-switch-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="date-switch-title" className="clear-day-title">
+              Bring your entries to this day?
+            </h2>
+            <p className="clear-day-lead">
+              You have <strong>{record.events.length}</strong> timeline{' '}
+              {record.events.length === 1 ? 'entry' : 'entries'} on{' '}
+              <strong className="clear-day-date">{formatDayHeading(date)}</strong>.{' '}
+              <strong className="clear-day-date">{formatDayHeading(pendingDateSwitch)}</strong> is
+              still empty.
+            </p>
+            <p className="clear-day-lead date-switch-hint">
+              Move your timeline to the new date, start fresh, or go back to keep editing the day
+              you were on.
+            </p>
+            <div className="clear-day-actions date-switch-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={performDateSwitchOpenEmpty}
+              >
+                Open {formatDayShort(pendingDateSwitch)} empty
+              </button>
+              <button
+                ref={dateSwitchFocusRef}
+                type="button"
+                className="btn primary"
+                onClick={performDateSwitchMove}
+              >
+                Move entries to {formatDayShort(pendingDateSwitch)}
+              </button>
+            </div>
+            <button
+              type="button"
+              className="date-switch-keep"
+              onClick={() => setPendingDateSwitch(null)}
+            >
+              Keep working on {formatDayShort(date)}
+            </button>
           </div>
         </div>
       ) : null}
