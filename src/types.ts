@@ -35,8 +35,9 @@ export interface DayRecord {
   events: DayEvent[]
 }
 
+/** Device-local shortcut row (med, food, movement forms). */
 export type MedPreset = {
   id: string
-  /** Full line text after time in Med log (name, dose, notes). */
+  /** Full line text after time (medication & dose, food line, or movement note). */
   label: string
 }

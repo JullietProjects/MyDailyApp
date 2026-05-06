@@ -12,8 +12,8 @@ import {
   formatEntryText,
   parseFoodRows,
   parseSleepFromText,
-} from '../textFix.ts'
-import { MedPresetsPanel } from './MedPresetsPanel'
+} from '../textFix'
+import { FoodPresetsPanel, MedPresetsPanel, MovementPresetsPanel } from './MedPresetsPanel'
 import { TrashIcon } from './TrashIcon'
 
 type Props = {
@@ -401,6 +401,26 @@ export function InlineAddEvent(p: Props) {
           >
             + Row
           </button>
+          <FoodPresetsPanel
+            onPick={(label) => {
+              const rowsFromLabel = parseFoodRows(label.trim()).filter(
+                (r) => r.macros.trim() || r.food.trim(),
+              )
+              if (rowsFromLabel.length === 0) return
+              setFoodRows((prev) => {
+                const rows = rowsFromLabel.map((r) => ({
+                  id: crypto.randomUUID(),
+                  macros: r.macros,
+                  food: r.food,
+                }))
+                const last = prev[prev.length - 1]
+                if (last && !last.macros.trim() && !last.food.trim()) {
+                  return [...prev.slice(0, -1), ...rows]
+                }
+                return [...prev, ...rows]
+              })
+            }}
+          />
         </div>
       ) : null}
       {!showSleepFields && effectiveKind !== 'food' ? (
@@ -435,6 +455,19 @@ export function InlineAddEvent(p: Props) {
           </label>
           {effectiveKind === 'med' ? (
             <MedPresetsPanel
+              onPick={(label) => {
+                const add = label.trim()
+                if (!add) return
+                setText((prev) => {
+                  const base = prev.trim()
+                  if (!base) return add
+                  return `${base} + ${add}`
+                })
+              }}
+            />
+          ) : null}
+          {effectiveKind === 'movement' ? (
+            <MovementPresetsPanel
               onPick={(label) => {
                 const add = label.trim()
                 if (!add) return

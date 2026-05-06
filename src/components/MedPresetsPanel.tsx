@@ -1,26 +1,42 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { MedPreset } from '../types'
-import { loadMedPresets, saveMedPresets } from '../storage'
+import {
+  loadFoodPresets,
+  loadMedPresets,
+  loadMovementPresets,
+  saveFoodPresets,
+  saveMedPresets,
+  saveMovementPresets,
+} from '../storage'
 
-type Props = {
-  /** Fills the medication field when user taps a saved shortcut. */
+export type ShortcutPresetsPanelProps = {
   onPick: (label: string) => void
+  loadPresets: () => MedPreset[]
+  savePresets: (presets: MedPreset[]) => void
+  groupAriaLabel: string
+  inputPlaceholder: string
 }
 
-export function MedPresetsPanel({ onPick }: Props) {
+export function ShortcutPresetsPanel({
+  onPick,
+  loadPresets,
+  savePresets,
+  groupAriaLabel,
+  inputPlaceholder,
+}: ShortcutPresetsPanelProps) {
   const [presets, setPresets] = useState<MedPreset[]>([])
   const [draft, setDraft] = useState('')
 
   const reload = useCallback(() => {
-    setPresets(loadMedPresets())
-  }, [])
+    setPresets(loadPresets())
+  }, [loadPresets])
 
   useEffect(() => {
     reload()
   }, [reload])
 
   function persist(next: MedPreset[]) {
-    saveMedPresets(next)
+    savePresets(next)
     setPresets(next)
   }
 
@@ -40,7 +56,7 @@ export function MedPresetsPanel({ onPick }: Props) {
       <div className="med-quick-block">
         <p className="muted small med-quick-intro">Your shortcuts (this device)</p>
         {presets.length > 0 ? (
-          <div className="med-quick-grid" role="group" aria-label="Saved medication shortcuts">
+          <div className="med-quick-grid" role="group" aria-label={groupAriaLabel}>
             {presets.map((p) => (
               <div key={p.id} className="med-preset-cell">
                 <button
@@ -61,11 +77,7 @@ export function MedPresetsPanel({ onPick }: Props) {
               </div>
             ))}
           </div>
-        ) : (
-          <p className="muted small med-presets-empty">
-            Add labels below for one-tap fill. Nothing is bundled with the app.
-          </p>
-        )}
+        ) : null}
         <div className="med-preset-add">
           <input
             className="input med-preset-input"
@@ -76,7 +88,7 @@ export function MedPresetsPanel({ onPick }: Props) {
               e.preventDefault()
               addFromDraft()
             }}
-            placeholder="e.g. Medication name & dose"
+            placeholder={inputPlaceholder}
             aria-label="New shortcut label"
           />
           <button type="button" className="btn secondary small" onClick={addFromDraft}>
@@ -85,5 +97,45 @@ export function MedPresetsPanel({ onPick }: Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+type MedProps = {
+  onPick: (label: string) => void
+}
+
+export function MedPresetsPanel({ onPick }: MedProps) {
+  return (
+    <ShortcutPresetsPanel
+      onPick={onPick}
+      loadPresets={loadMedPresets}
+      savePresets={saveMedPresets}
+      groupAriaLabel="Saved medication shortcuts"
+      inputPlaceholder="e.g. Medication name & dose"
+    />
+  )
+}
+
+export function FoodPresetsPanel({ onPick }: MedProps) {
+  return (
+    <ShortcutPresetsPanel
+      onPick={onPick}
+      loadPresets={loadFoodPresets}
+      savePresets={saveFoodPresets}
+      groupAriaLabel="Saved food shortcuts"
+      inputPlaceholder="e.g. 40g protein bar or 200 kcal oats"
+    />
+  )
+}
+
+export function MovementPresetsPanel({ onPick }: MedProps) {
+  return (
+    <ShortcutPresetsPanel
+      onPick={onPick}
+      loadPresets={loadMovementPresets}
+      savePresets={saveMovementPresets}
+      groupAriaLabel="Saved movement shortcuts"
+      inputPlaceholder="e.g. 30 min walk or mobility routine"
+    />
   )
 }

@@ -9,7 +9,9 @@ function stripDuration(ev: DayEvent): DayEvent {
 }
 
 const dayKey = (date: string) => `mydailyapp:day:${date}`
-const PRESETS_KEY = 'mydailyapp:medPresets'
+const MED_PRESETS_KEY = 'mydailyapp:medPresets'
+const FOOD_PRESETS_KEY = 'mydailyapp:foodPresets'
+const MOVEMENT_PRESETS_KEY = 'mydailyapp:movementPresets'
 
 /** When `localStorage` throws (e.g. Chrome on http://192.168…), hold keys in memory for this tab only. */
 const memory = new Map<string, string>()
@@ -133,9 +135,9 @@ export function saveDay(record: DayRecord): void {
   }
 }
 
-export function loadMedPresets(): MedPreset[] {
+function loadPresetsAtKey(key: string): MedPreset[] {
   try {
-    const raw = storageGet(PRESETS_KEY)
+    const raw = storageGet(key)
     if (!raw) return []
     const parsed = JSON.parse(raw) as MedPreset[]
     return Array.isArray(parsed)
@@ -146,10 +148,34 @@ export function loadMedPresets(): MedPreset[] {
   }
 }
 
-export function saveMedPresets(presets: MedPreset[]): void {
+function savePresetsAtKey(key: string, presets: MedPreset[]): void {
   try {
-    storageSet(PRESETS_KEY, JSON.stringify(presets))
+    storageSet(key, JSON.stringify(presets))
   } catch {
     // ignore
   }
+}
+
+export function loadMedPresets(): MedPreset[] {
+  return loadPresetsAtKey(MED_PRESETS_KEY)
+}
+
+export function saveMedPresets(presets: MedPreset[]): void {
+  savePresetsAtKey(MED_PRESETS_KEY, presets)
+}
+
+export function loadFoodPresets(): MedPreset[] {
+  return loadPresetsAtKey(FOOD_PRESETS_KEY)
+}
+
+export function saveFoodPresets(presets: MedPreset[]): void {
+  savePresetsAtKey(FOOD_PRESETS_KEY, presets)
+}
+
+export function loadMovementPresets(): MedPreset[] {
+  return loadPresetsAtKey(MOVEMENT_PRESETS_KEY)
+}
+
+export function saveMovementPresets(presets: MedPreset[]): void {
+  savePresetsAtKey(MOVEMENT_PRESETS_KEY, presets)
 }
