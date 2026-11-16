@@ -1263,56 +1263,108 @@
 }
 
 .med-quick-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
 }
 
-@media (min-width: 380px) {
-  .med-quick-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
 .med-quick-btn {
-  width: 100%;
-  min-height: 2.4rem;
-  text-align: center;
-  font-size: 0.8rem;
+  width: auto;
+  max-width: 100%;
+  min-height: 2rem;
+  text-align: left;
+  font-size: 0.85rem;
   font-weight: 400;
-  padding: 0.45rem 0.5rem;
-  border-radius: 10px;
+  padding: 0.3rem 0.15rem 0.3rem 0.7rem;
+  border-radius: 999px 0 0 999px;
   line-height: 1.25;
-  hyphens: auto;
-  overflow-wrap: anywhere;
-}
-
-@media (min-width: 400px) {
-  .med-quick-btn {
-    font-size: 0.85rem;
-    min-height: 2.55rem;
-    padding: 0.5rem 0.55rem;
-  }
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .med-preset-cell {
-  display: flex;
-  gap: 0.25rem;
+  display: inline-flex;
   align-items: stretch;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.med-preset-cell.is-dragging {
+  opacity: 0.55;
+  outline: 2px dashed var(--accent-border);
+  outline-offset: 2px;
+  cursor: grabbing;
+}
+
+.med-preset-cell.is-dragging .med-quick-btn {
+  cursor: grabbing;
+}
+
+.med-preset-cell.is-editing {
+  gap: 0.2rem;
+  padding-right: 0.25rem;
+}
+
+.med-preset-cell .med-quick-btn,
+.med-preset-cell .med-preset-edit,
+.med-preset-cell .med-preset-remove {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.med-preset-cell .med-quick-btn:hover,
+.med-preset-cell .med-preset-edit:hover,
+.med-preset-cell .med-preset-remove:hover {
+  background: color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+.med-preset-cell.is-editing .btn.small {
+  align-self: center;
+  border-radius: 999px;
 }
 
 .med-preset-cell .med-quick-btn {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
+.med-preset-edit,
 .med-preset-remove {
   flex-shrink: 0;
-  min-width: 2.25rem;
+  width: 1.7rem;
+  min-width: 1.7rem;
   padding: 0;
-  font-size: 1.25rem;
+  border-radius: 0;
+}
+
+.med-preset-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.med-preset-remove {
+  font-size: 1.05rem;
   line-height: 1;
-  border-radius: 10px;
+  border-radius: 0 999px 999px 0;
+}
+
+.med-preset-edit-input {
+  width: auto;
+  min-width: 6rem;
+  max-width: 16rem;
+  field-sizing: content;
+  min-height: 2rem;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.65rem;
+  border: none;
+  border-radius: 999px 0 0 999px;
+  box-shadow: none;
 }
 
 .med-preset-add {
